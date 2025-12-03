@@ -336,8 +336,19 @@
 
         // API 키 저장
         function saveApiKey() {
-            const apiKey = document.getElementById('api-key-input').value.trim();
-            const apiProvider = document.getElementById('api-provider').value;
+            console.log('saveApiKey 함수 호출됨');
+            
+            const apiKeyInput = document.getElementById('api-key-input');
+            const apiProviderSelect = document.getElementById('api-provider');
+            
+            if (!apiKeyInput || !apiProviderSelect) {
+                console.error('입력 요소를 찾을 수 없습니다!');
+                alert('오류: 입력 요소를 찾을 수 없습니다.');
+                return;
+            }
+            
+            const apiKey = apiKeyInput.value.trim();
+            const apiProvider = apiProviderSelect.value;
             
             console.log('저장 시도 - Provider:', apiProvider, 'Key length:', apiKey.length);
             
@@ -352,17 +363,30 @@
             }
 
             // 저장
-            localStorage.setItem(STORAGE_KEYS.API_KEY, apiKey);
-            localStorage.setItem(STORAGE_KEYS.API_PROVIDER, apiProvider);
-            
-            console.log('저장 완료 - LocalStorage 확인:', 
-                localStorage.getItem(STORAGE_KEYS.API_KEY)?.substring(0, 10) + '...');
-            
-            // UI 업데이트
-            document.getElementById('api-section').classList.add('hidden');
-            document.getElementById('input-section').classList.remove('hidden');
-            
-            alert('API 키가 저장되었습니다! ✅');
+            try {
+                localStorage.setItem(STORAGE_KEYS.API_KEY, apiKey);
+                localStorage.setItem(STORAGE_KEYS.API_PROVIDER, apiProvider);
+                
+                console.log('저장 완료 - LocalStorage 확인:', 
+                    localStorage.getItem(STORAGE_KEYS.API_KEY)?.substring(0, 10) + '...');
+                
+                // UI 업데이트
+                const apiSection = document.getElementById('api-section');
+                const inputSection = document.getElementById('input-section');
+                
+                if (apiSection && inputSection) {
+                    apiSection.classList.add('hidden');
+                    inputSection.classList.remove('hidden');
+                    console.log('UI 업데이트 완료');
+                } else {
+                    console.error('섹션 요소를 찾을 수 없습니다!');
+                }
+                
+                alert('API 키가 저장되었습니다! ✅');
+            } catch (error) {
+                console.error('저장 중 오류:', error);
+                alert('저장 중 오류가 발생했습니다: ' + error.message);
+            }
         }
 
         // 대본 분석 및 주제 추천
