@@ -425,6 +425,13 @@
             }
 
             const data = await response.json();
+            
+            // 응답 구조 검증
+            if (!data.candidates || data.candidates.length === 0) {
+                console.error('API 응답:', data);
+                throw new Error('AI 응답을 받지 못했습니다. 할당량을 확인해주세요.');
+            }
+            
             const content = JSON.parse(data.candidates[0].content.parts[0].text);
             return content.topics || [];
         }
@@ -542,14 +549,21 @@
                             text: `당신은 유튜브 대본 작가입니다. 사용자의 과거 대본 스타일을 분석하여, 새로운 주제에 맞는 유튜브 대본을 작성해주세요. 자연스럽고 흥미로우며, 시청자와 소통하는 톤을 유지하세요.\n\n다음은 제 과거 대본입니다:\n\n${pastScript}\n\n이 스타일을 참고하여, "${topic.title}" 주제로 새로운 유튜브 대본을 작성해주세요. 대본은 5-10분 분량으로 작성해주세요.`
                         }]
                     }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 2000
-                    }
-                })
-            });
-
             if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'API 요청 실패');
+            }
+
+            const data = await response.json();
+            
+            // 응답 구조 검증
+            if (!data.candidates || data.candidates.length === 0) {
+                console.error('API 응답:', data);
+                throw new Error('AI 응답을 받지 못했습니다. 할당량을 확인해주세요.');
+            }
+            
+            return data.candidates[0].content.parts[0].text.trim();
+        }   if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.error?.message || 'API 요청 실패');
             }
