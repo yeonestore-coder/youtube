@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>유튜브 대본 생성기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 0.95rem;
+        }
+
+        .section {
+            margin-bottom: 50px;
+            padding: 30px;
+            border: 2px solid #000;
+            background-color: #fafafa;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        /* API 키 입력 섹션 */
+        #api-section {
+            display: block;
+        }
+
+        #api-section.hidden {
+            display: none;
+        }
+
+        .api-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        #api-key-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #000;
+            font-size: 1rem;
+        }
+
+        #api-key-input:focus {
+            outline: none;
+            background-color: #f0f0f0;
+        }
+
+        /* 버튼 스타일 */
+        button {
+            padding: 12px 24px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #333;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: #fff;
+            color: #000;
+            border: 2px solid #000;
+        }
+
+        .btn-secondary:hover {
+            background-color: #f0f0f0;
+        }
+
+        /* 텍스트 입력창 */
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid #000;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+
+        textarea:focus {
+            outline: none;
+            background-color: #f9f9f9;
+        }
+
+        /* 주제 추천 카드 */
+        .topics-container {
+            display: grid;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .topic-card {
+            padding: 20px;
+            border: 2px solid #000;
+            background-color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .topic-card:hover {
+            background-color: #000;
+            color: #fff;
+        }
+
+        .topic-card.selected {
+            background-color: #000;
+            color: #fff;
+        }
+
+        .topic-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .topic-description {
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+
+        /* 로딩 상태 */
+        .loading {
+            text-align: center;
+            padding: 30px;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* 숨김 처리 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* 결과 섹션 */
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        /* 상태 메시지 */
+        .status-message {
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid #000;
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+
+        .api-info {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📹 유튜브 대본 생성기</h1>
+    <p class="subtitle">과거 대본을 분석하여 새로운 주제를 추천하고, 대본을 자동 생성합니다</p>
+
+    <!-- API 키 입력 섹션 -->
+    <div id="api-section" class="section">
+        <div class="section-title">🔑 OpenAI API 키 설정</div>
+        <div class="api-input-group">
+            <input type="password" id="api-key-input" placeholder="OpenAI API 키를 입력하세요 (sk-...)">
+            <button onclick="saveApiKey()">저장</button>
+        </div>
+        <div class="api-info">
+            💡 API 키는 브라우저에 안전하게 저장됩니다. OpenAI 계정에서 발급받을 수 있습니다.
+        </div>
+    </div>
+
+    <!-- 1. 과거 대본 입력 -->
+    <div id="input-section" class="section hidden">
+        <div class="section-title">1️⃣ 과거 대본 입력</div>
+        <textarea id="past-script" placeholder="과거에 작성했던 유튜브 대본을 여기에 붙여넣으세요...&#10;&#10;예시:&#10;안녕하세요 여러분! 오늘은 프로그래밍 초보자를 위한 파이썬 기초에 대해 알아보겠습니다.&#10;파이썬은 배우기 쉽고 강력한 프로그래밍 언어입니다..."></textarea>
+        <button onclick="analyzeScript()" id="analyze-btn">주제 추천받기 🎯</button>
+    </div>
+
+    <!-- 2. 주제 추천 결과 -->
+    <div id="topics-section" class="section hidden">
+        <div class="section-title">2️⃣ 추천 주제 선택</div>
+        <div id="loading" class="loading hidden">AI가 주제를 분석하고 있습니다</div>
+        <div id="topics-container" class="topics-container"></div>
+    </div>
+
+    <!-- 3. 새 대본 생성 -->
+    <div id="output-section" class="section hidden">
+        <div class="result-header">
+            <div class="section-title">3️⃣ 생성된 대본</div>
+        </div>
+        <div id="generating" class="loading hidden">선택한 주제로 대본을 생성하고 있습니다</div>
+        <textarea id="new-script" placeholder="생성된 대본이 여기에 표시됩니다..."></textarea>
+        <div class="button-group">
+            <button onclick="copyScript()">📋 복사하기</button>
+            <button onclick="downloadScript()">💾 다운로드</button>
+        </div>
+    </div>
+
+    <!-- 4. 초기화 버튼 -->
+    <div id="reset-section" class="section hidden">
+        <button class="btn-secondary" onclick="resetAll()" style="width: 100%;">🔄 새로운 작업 시작하기</button>
+    </div>
+
+    <script>
+        // LocalStorage 키 상수
+        const STORAGE_KEYS = {
+            API_KEY: 'openai_api_key',
+            PAST_SCRIPT: 'past_script',
+            TOPICS: 'recommended_topics',
+            SELECTED_TOPIC: 'selected_topic',
+            NEW_SCRIPT: 'new_script'
+        };
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedData();
+        });
+
+        // 저장된 데이터 불러오기
+        function loadSavedData() {
+            const apiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
+            
+            if (apiKey) {
+                // API 키가 있으면 입력 섹션 표시
+                document.getElementById('api-section').classList.add('hidden');
+                document.getElementById('input-section').classList.remove('hidden');
+                
+                // 이전 작업 데이터 복원
+                const pastScript = localStorage.getItem(STORAGE_KEYS.PAST_SCRIPT);
+                if (pastScript) {
+                    document.getElementById('past-script').value = pastScript;
+                }
+
+                const topics = localStorage.getItem(STORAGE_KEYS.TOPICS);
+                if (topics) {
+                    displayTopics(JSON.parse(topics));
+                }
+
+                const newScript = localStorage.getItem(STORAGE_KEYS.NEW_SCRIPT);
+                if (newScript) {
+                    document.getElementById('new-script').value = newScript;
+                    document.getElementById('output-section').classList.remove('hidden');
+                    document.getElementById('reset-section').classList.remove('hidden');
+                }
+            }
+        }
+
+        // API 키 저장
+        function saveApiKey() {
+            const apiKey = document.getElementById('api-key-input').value.trim();
+            
+            if (!apiKey) {
+                alert('API 키를 입력해주세요.');
+                return;
+            }
+
+            if (!apiKey.startsWith('sk-')) {
+                alert('올바른 OpenAI API 키 형식이 아닙니다. (sk-로 시작해야 합니다)');
+                return;
+            }
+
+            localStorage.setItem(STORAGE_KEYS.API_KEY, apiKey);
+            document.getElementById('api-section').classList.add('hidden');
+            document.getElementById('input-section').classList.remove('hidden');
+            alert('API 키가 저장되었습니다! ✅');
+        }
+
+        // 대본 분석 및 주제 추천
+        async function analyzeScript() {
+            const pastScript = document.getElementById('past-script').value.trim();
+            
+            if (!pastScript) {
+                alert('과거 대본을 입력해주세요.');
+                return;
+            }
+
+            // 입력 내용 저장
+            localStorage.setItem(STORAGE_KEYS.PAST_SCRIPT, pastScript);
+
+            // 버튼 비활성화 및 로딩 표시
+            const analyzeBtn = document.getElementById('analyze-btn');
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '분석 중...';
+
+            document.getElementById('topics-section').classList.remove('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('topics-container').innerHTML = '';
+
+            try {
+                const apiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
+                const topics = await requestTopicsFromAI(pastScript, apiKey);
+                
+                // 주제 저장 및 표시
+                localStorage.setItem(STORAGE_KEYS.TOPICS, JSON.stringify(topics));
+                displayTopics(topics);
+                
+            } catch (error) {
+                alert('주제 추천 중 오류가 발생했습니다: ' + error.message);
+                console.error(error);
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '주제 추천받기 🎯';
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        // OpenAI API로 주제 추천 요청
+        async function requestTopicsFromAI(script, apiKey) {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: '당신은 유튜브 콘텐츠 전문가입니다. 사용자의 과거 대본을 분석하여 3가지 새로운 주제를 추천해주세요. 각 주제는 제목과 간단한 설명(1-2문장)으로 구성됩니다. JSON 형식으로 응답하세요: [{"title": "주제 제목", "description": "주제 설명"}, ...]'
+                        },
+                        {
+                            role: 'user',
+                            content: `다음 대본을 분석하여 유사한 스타일의 새로운 주제 3가지를 추천해주세요:\n\n${script}`
+                        }
+                    ],
+                    temperature: 0.8,
+                    response_format: { type: "json_object" }
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'API 요청 실패');
+            }
+
+            const data = await response.json();
+            const content = JSON.parse(data.choices[0].message.content);
+            
+            // 응답 형식 처리 (배열 또는 객체의 topics 속성)
+            return Array.isArray(content) ? content : (content.topics || []);
+        }
+
+        // 주제 카드 표시
+        function displayTopics(topics) {
+            const container = document.getElementById('topics-container');
+            container.innerHTML = '';
+
+            topics.forEach((topic, index) => {
+                const card = document.createElement('div');
+                card.className = 'topic-card';
+                card.innerHTML = `
+                    <div class="topic-title">${topic.title}</div>
+                    <div class="topic-description">${topic.description}</div>
+                `;
+                card.onclick = () => selectTopic(topic, index);
+                container.appendChild(card);
+            });
+        }
+
+        // 주제 선택
+        async function selectTopic(topic, index) {
+            // 선택 표시
+            const cards = document.querySelectorAll('.topic-card');
+            cards.forEach((card, i) => {
+                card.classList.toggle('selected', i === index);
+            });
+
+            // 선택한 주제 저장
+            localStorage.setItem(STORAGE_KEYS.SELECTED_TOPIC, JSON.stringify(topic));
+
+            // 대본 생성 섹션 표시
+            document.getElementById('output-section').classList.remove('hidden');
+            document.getElementById('generating').classList.remove('hidden');
+            document.getElementById('new-script').value = '';
+
+            try {
+                const pastScript = localStorage.getItem(STORAGE_KEYS.PAST_SCRIPT);
+                const apiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
+                const newScript = await generateScript(topic, pastScript, apiKey);
+                
+                // 생성된 대본 표시 및 저장
+                document.getElementById('new-script').value = newScript;
+                localStorage.setItem(STORAGE_KEYS.NEW_SCRIPT, newScript);
+                
+                // 초기화 버튼 표시
+                document.getElementById('reset-section').classList.remove('hidden');
+                
+            } catch (error) {
+                alert('대본 생성 중 오류가 발생했습니다: ' + error.message);
+                console.error(error);
+            } finally {
+                document.getElementById('generating').classList.add('hidden');
+            }
+        }
+
+        // OpenAI API로 대본 생성 요청
+        async function generateScript(topic, pastScript, apiKey) {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: '당신은 유튜브 대본 작가입니다. 사용자의 과거 대본 스타일을 분석하여, 새로운 주제에 맞는 유튜브 대본을 작성해주세요. 자연스럽고 흥미로우며, 시청자와 소통하는 톤을 유지하세요.'
+                        },
+                        {
+                            role: 'user',
+                            content: `다음은 제 과거 대본입니다:\n\n${pastScript}\n\n이 스타일을 참고하여, "${topic.title}" 주제로 새로운 유튜브 대본을 작성해주세요. 대본은 5-10분 분량으로 작성해주세요.`
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 2000
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'API 요청 실패');
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content.trim();
+        }
+
+        // 대본 복사
+        function copyScript() {
+            const script = document.getElementById('new-script').value;
+            navigator.clipboard.writeText(script).then(() => {
+                alert('대본이 클립보드에 복사되었습니다! 📋');
+            }).catch(err => {
+                alert('복사 실패: ' + err.message);
+            });
+        }
+
+        // 대본 다운로드
+        function downloadScript() {
+            const script = document.getElementById('new-script').value;
+            const topic = JSON.parse(localStorage.getItem(STORAGE_KEYS.SELECTED_TOPIC) || '{}');
+            const filename = `${topic.title || '새대본'}_${new Date().toISOString().slice(0,10)}.txt`;
+            
+            const blob = new Blob([script], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 전체 초기화
+        function resetAll() {
+            if (!confirm('모든 작업 내용이 삭제됩니다. 계속하시겠습니까?')) {
+                return;
+            }
+
+            // API 키를 제외한 모든 데이터 삭제
+            localStorage.removeItem(STORAGE_KEYS.PAST_SCRIPT);
+            localStorage.removeItem(STORAGE_KEYS.TOPICS);
+            localStorage.removeItem(STORAGE_KEYS.SELECTED_TOPIC);
+            localStorage.removeItem(STORAGE_KEYS.NEW_SCRIPT);
+
+            // 입력창 초기화
+            document.getElementById('past-script').value = '';
+            document.getElementById('new-script').value = '';
+            document.getElementById('topics-container').innerHTML = '';
+
+            // 섹션 숨기기
+            document.getElementById('topics-section').classList.add('hidden');
+            document.getElementById('output-section').classList.add('hidden');
+            document.getElementById('reset-section').classList.add('hidden');
+
+            // 맨 위로 스크롤
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 입력창 자동 저장 (타이핑 중)
+        document.getElementById('past-script').addEventListener('input', (e) => {
+            localStorage.setItem(STORAGE_KEYS.PAST_SCRIPT, e.target.value);
+        });
+    </script>
+</body>
+</html>
