@@ -225,7 +225,7 @@
                 <option value="openai">OpenAI</option>
             </select>
             <input type="password" id="api-key-input" placeholder="Gemini API 키를 입력하세요">
-            <button onclick="saveApiKey()">저장</button>
+            <button type="button" id="save-api-key-btn" onclick="saveApiKey()">저장</button>
         </div>
         <div class="api-info">
             💡 API 키는 브라우저에 안전하게 저장됩니다. Google AI Studio 또는 OpenAI에서 발급받을 수 있습니다.
@@ -277,11 +277,25 @@
 
         // 페이지 로드 시 초기화
         window.addEventListener('DOMContentLoaded', () => {
+            console.log('페이지 로드 완료');
             loadSavedData();
             updatePlaceholder();
             
             // API 제공자 변경 시 플레이스홀더 업데이트
             document.getElementById('api-provider').addEventListener('change', updatePlaceholder);
+            
+            // 저장 버튼에 추가 이벤트 리스너 등록 (백업)
+            const saveBtn = document.getElementById('save-api-key-btn');
+            if (saveBtn) {
+                console.log('저장 버튼 찾음, 이벤트 리스너 추가');
+                saveBtn.addEventListener('click', function(e) {
+                    console.log('버튼 클릭됨 (addEventListener)');
+                    e.preventDefault();
+                    saveApiKey();
+                });
+            } else {
+                console.error('저장 버튼을 찾을 수 없습니다!');
+            }
         });
 
         // 플레이스홀더 업데이트
