@@ -300,6 +300,8 @@
             const apiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
             const apiProvider = localStorage.getItem(STORAGE_KEYS.API_PROVIDER) || 'gemini';
             
+            console.log('페이지 로드 - API Key 존재:', !!apiKey, 'Provider:', apiProvider);
+            
             if (apiKey) {
                 // API 제공자 복원
                 document.getElementById('api-provider').value = apiProvider;
@@ -307,6 +309,8 @@
                 // API 키가 있으면 입력 섹션 표시
                 document.getElementById('api-section').classList.add('hidden');
                 document.getElementById('input-section').classList.remove('hidden');
+                
+                console.log('입력 섹션 표시됨');
                 
                 // 이전 작업 데이터 복원
                 const pastScript = localStorage.getItem(STORAGE_KEYS.PAST_SCRIPT);
@@ -325,6 +329,8 @@
                     document.getElementById('output-section').classList.remove('hidden');
                     document.getElementById('reset-section').classList.remove('hidden');
                 }
+            } else {
+                console.log('저장된 API 키 없음');
             }
         }
 
@@ -332,6 +338,8 @@
         function saveApiKey() {
             const apiKey = document.getElementById('api-key-input').value.trim();
             const apiProvider = document.getElementById('api-provider').value;
+            
+            console.log('저장 시도 - Provider:', apiProvider, 'Key length:', apiKey.length);
             
             if (!apiKey) {
                 alert('API 키를 입력해주세요.');
@@ -343,10 +351,17 @@
                 return;
             }
 
+            // 저장
             localStorage.setItem(STORAGE_KEYS.API_KEY, apiKey);
             localStorage.setItem(STORAGE_KEYS.API_PROVIDER, apiProvider);
+            
+            console.log('저장 완료 - LocalStorage 확인:', 
+                localStorage.getItem(STORAGE_KEYS.API_KEY)?.substring(0, 10) + '...');
+            
+            // UI 업데이트
             document.getElementById('api-section').classList.add('hidden');
             document.getElementById('input-section').classList.remove('hidden');
+            
             alert('API 키가 저장되었습니다! ✅');
         }
 
